@@ -9,7 +9,161 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      auctions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          current_bid: number | null
+          description: string | null
+          end_time: string
+          id: string
+          start_time: string | null
+          starting_bid: number | null
+          status: Database["public"]["Enums"]["auction_status"] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          current_bid?: number | null
+          description?: string | null
+          end_time: string
+          id?: string
+          start_time?: string | null
+          starting_bid?: number | null
+          status?: Database["public"]["Enums"]["auction_status"] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          current_bid?: number | null
+          description?: string | null
+          end_time?: string
+          id?: string
+          start_time?: string | null
+          starting_bid?: number | null
+          status?: Database["public"]["Enums"]["auction_status"] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auctions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bids: {
+        Row: {
+          amount: number
+          auction_id: string
+          id: string
+          timestamp: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          auction_id: string
+          id?: string
+          timestamp?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auction_id?: string
+          id?: string
+          timestamp?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          auction_id: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auction_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auction_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +172,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      auction_status: "active" | "ended" | "cancelled"
+      user_role: "user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +288,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      auction_status: ["active", "ended", "cancelled"],
+      user_role: ["user", "admin"],
+    },
   },
 } as const
