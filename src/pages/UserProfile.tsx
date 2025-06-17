@@ -4,71 +4,78 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { User } from "lucide-react";
-import { useBids } from "@/hooks/useBids";
-import { supabase } from "@/integrations/supabase/client";
+
+interface UserBid {
+  id: string;
+  auction_title: string;
+  amount: number;
+  timestamp: string;
+  status: "active" | "won" | "lost";
+}
 
 const UserProfile = () => {
-  const { getUserBids } = useBids();
-  const [userData, setUserData] = useState({
-    email: "",
+  const [userBids, setUserBids] = useState<UserBid[]>([]);
+  const [userData] = useState({
+    email: "john.doe@example.com",
     role: "user",
-    totalBids: 0,
-    wonAuctions: 0
+    totalBids: 12,
+    wonAuctions: 3
   });
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email, role')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile) {
-          setUserData(prev => ({
-            ...prev,
-            email: profile.email,
-            role: profile.role
-          }));
-        }
+    // Simuler le chargement des données utilisateur
+    const mockBids: UserBid[] = [
+      {
+        id: "1",
+        auction_title: "Montre Vintage Rolex",
+        amount: 2500,
+        timestamp: "2024-06-17T10:30:00Z",
+        status: "active"
+      },
+      {
+        id: "2",
+        auction_title: "Tableau Impressionniste",
+        amount: 1800,
+        timestamp: "2024-06-16T14:20:00Z",
+        status: "won"
+      },
+      {
+        id: "3",
+        auction_title: "Appareil Photo Leica",
+        amount: 950,
+        timestamp: "2024-06-15T09:15:00Z",
+        status: "lost"
+      },
+      {
+        id: "4",
+        auction_title: "Sculpture Bronze",
+        amount: 3200,
+        timestamp: "2024-06-14T16:45:00Z",
+        status: "won"
+      },
+      {
+        id: "5",
+        auction_title: "Livre Ancien",
+        amount: 450,
+        timestamp: "2024-06-13T11:30:00Z",
+        status: "lost"
       }
-    };
+    ];
 
-    fetchUserData();
+    setUserBids(mockBids);
   }, []);
 
-  useEffect(() => {
-    if (getUserBids.data) {
-      const totalBids = getUserBids.data.length;
-      const wonAuctions = getUserBids.data.filter(bid => 
-        bid.auctions?.status === 'ended' && 
-        bid.amount === bid.auctions?.current_bid
-      ).length;
-      
-      setUserData(prev => ({
-        ...prev,
-        totalBids,
-        wonAuctions
-      }));
-    }
-  }, [getUserBids.data]);
-
-  const getStatusBadge = (bid: any) => {
-    const auction = bid.auctions;
-    if (!auction) return <Badge variant="outline">Inconnue</Badge>;
-    
-    if (auction.status === "active") {
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700">En cours</Badge>;
-    } else if (auction.status === "ended") {
-      if (bid.amount === auction.current_bid) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700">En cours</Badge>;
+      case "won":
         return <Badge variant="outline" className="bg-green-50 text-green-700">Remporté</Badge>;
-      } else {
+      case "lost":
         return <Badge variant="outline" className="bg-red-50 text-red-700">Perdu</Badge>;
-      }
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
-    return <Badge variant="outline">Terminé</Badge>;
   };
 
   return (
@@ -135,38 +142,30 @@ const UserProfile = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {getUserBids.isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center">
-                          Chargement...
+                    {userBids.map((bid) => (
+                      <TableRow key={bid.id}>
+                        <TableCell className="font-medium">
+                          {bid.auction_title}
+                        </TableCell>
+                        <TableCell>
+                          {bid.amount.toLocaleString()} €
+                        </TableCell>
+                        <TableCell>
+                          {new Date(bid.timestamp).toLocaleDateString('fr-FR')}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(bid.status)}
                         </TableCell>
                       </TableRow>
-                    ) : getUserBids.data && getUserBids.data.length > 0 ? (
-                      getUserBids.data.map((bid) => (
-                        <TableRow key={bid.id}>
-                          <TableCell className="font-medium">
-                            {bid.auctions?.title || 'Enchère supprimée'}
-                          </TableCell>
-                          <TableCell>
-                            {bid.amount.toLocaleString()} €
-                          </TableCell>
-                          <TableCell>
-                            {new Date(bid.timestamp).toLocaleDateString('fr-FR')}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(bid)}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center">
-                          Aucune enchère trouvée
-                        </TableCell>
-                      </TableRow>
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
+                
+                {userBids.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Aucune enchère trouvée</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

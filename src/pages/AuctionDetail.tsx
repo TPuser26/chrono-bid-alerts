@@ -8,18 +8,70 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Plus } from "lucide-react";
-import { useRealtimeAuctions } from "@/hooks/useRealtimeAuctions";
-import { useBids } from "@/hooks/useBids";
+
+interface Auction {
+  id: string;
+  title: string;
+  description: string;
+  current_bid: number;
+  end_time: string;
+  status: string;
+}
+
+interface Bid {
+  id: string;
+  user_id: string;
+  amount: number;
+  timestamp: string;
+  user_email: string;
+}
 
 const AuctionDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const [auction, setAuction] = useState<Auction | null>(null);
+  const [bids, setBids] = useState<Bid[]>([]);
   const [newBidAmount, setNewBidAmount] = useState("");
-  
-  const { auctions, isLoading: auctionsLoading } = useRealtimeAuctions();
-  const { bids, isLoading: bidsLoading, submitBid } = useBids(id);
-  
-  const auction = auctions?.find(a => a.id === id);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Simuler le chargement des données d'enchère
+    const mockAuction: Auction = {
+      id: id || "1",
+      title: "Montre Vintage Rolex",
+      description: "Magnifique montre vintage Rolex Submariner de 1965 en excellent état. Cette pièce rare présente tous les détails authentiques et a été soigneusement entretenue. Parfaite pour les collectionneurs.",
+      current_bid: 2500,
+      end_time: "2024-12-25T15:30:00Z",
+      status: "active"
+    };
+
+    const mockBids: Bid[] = [
+      {
+        id: "1",
+        user_id: "user1",
+        amount: 2500,
+        timestamp: "2024-06-17T10:30:00Z",
+        user_email: "john@example.com"
+      },
+      {
+        id: "2", 
+        user_id: "user2",
+        amount: 2300,
+        timestamp: "2024-06-17T09:15:00Z",
+        user_email: "marie@example.com"
+      },
+      {
+        id: "3",
+        user_id: "user3", 
+        amount: 2100,
+        timestamp: "2024-06-17T08:45:00Z",
+        user_email: "pierre@example.com"
+      }
+    ];
+
+    setAuction(mockAuction);
+    setBids(mockBids);
+  }, [id]);
 
   const formatTimeRemaining = (endTime: string) => {
     const now = new Date();
@@ -40,42 +92,56 @@ const AuctionDetail = () => {
   const handleSubmitBid = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!auction || !id) return;
+    if (!auction) return;
     
     const bidAmount = parseFloat(newBidAmount);
     
-    if (isNaN(bidAmount) || bidAmount <= 0) {
+    if (bidAmount <= auction.current_bid) {
       toast({
         title: "Enchère invalide",
-        description: "Veuillez entrer un montant valide",
+        description: "Votre offre doit être supérieure à l'enchère actuelle",
         variant: "destructive"
       });
       return;
     }
 
+    setIsSubmitting(true);
+    
     try {
-      await submitBid.mutateAsync({
-        auctionId: id,
-        amount: bidAmount
-      });
+      // Simuler l'envoi de l'offre
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const newBid: Bid = {
+        id: Date.now().toString(),
+        user_id: "current_user",
+        amount: bidAmount,
+        timestamp: new Date().toISOString(),
+        user_email: "vous@example.com"
+      };
+      
+      setBids(prev => [newBid, ...prev]);
+      setAuction(prev => prev ? { ...prev, current_bid: bidAmount } : null);
       setNewBidAmount("");
+      
+      toast({
+        title: "Offre soumise",
+        description: "Votre enchère a été enregistrée avec succès"
+      });
     } catch (error) {
-      // L'erreur est déjà gérée dans le hook useBids
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la soumission",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  if (auctionsLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div>Chargement...</div>
-      </div>
-    );
-  }
 
   if (!auction) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div>Enchère non trouvée</div>
+        <div>Chargement...</div>
       </div>
     );
   }
@@ -107,7 +173,7 @@ const AuctionDetail = () => {
                     <div>
                       <span className="text-sm font-medium text-gray-600">Enchère actuelle</span>
                       <p className="text-2xl font-bold text-primary">
-                        {auction.current_bid?.toLocaleString() || 0} €
+                        {auction.current_bid.toLocaleString()} €
                       </p>
                     </div>
                     <div>
@@ -138,20 +204,20 @@ const AuctionDetail = () => {
                       id="bidAmount"
                       type="number"
                       step="0.01"
-                      min={(auction.current_bid || 0) + 0.01}
+                      min={auction.current_bid + 0.01}
                       value={newBidAmount}
                       onChange={(e) => setNewBidAmount(e.target.value)}
-                      placeholder={`Minimum: ${((auction.current_bid || 0) + 1).toLocaleString()} €`}
+                      placeholder={`Minimum: ${(auction.current_bid + 1).toLocaleString()} €`}
                       required
                     />
                   </div>
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={submitBid.isPending || auction.status !== "active"}
+                    disabled={isSubmitting || auction.status !== "active"}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    {submitBid.isPending ? "Soumission..." : "Enchérir"}
+                    {isSubmitting ? "Soumission..." : "Enchérir"}
                   </Button>
                 </form>
               </CardContent>
@@ -164,20 +230,17 @@ const AuctionDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {bidsLoading ? (
-                    <p className="text-gray-500 text-center">Chargement...</p>
-                  ) : bids && bids.length > 0 ? (
-                    bids.map((bid) => (
-                      <div key={bid.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium">{bid.amount.toLocaleString()} €</p>
-                          <p className="text-sm text-gray-600">
-                            {bid.profiles?.email} • {new Date(bid.timestamp).toLocaleString('fr-FR')}
-                          </p>
-                        </div>
+                  {bids.map((bid) => (
+                    <div key={bid.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                      <div>
+                        <p className="font-medium">{bid.amount.toLocaleString()} €</p>
+                        <p className="text-sm text-gray-600">
+                          {bid.user_email} • {new Date(bid.timestamp).toLocaleString('fr-FR')}
+                        </p>
                       </div>
-                    ))
-                  ) : (
+                    </div>
+                  ))}
+                  {bids.length === 0 && (
                     <p className="text-gray-500 text-center">Aucune enchère pour le moment</p>
                   )}
                 </div>
